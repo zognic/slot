@@ -1,4 +1,6 @@
-use slot_gfx::{square, square_canvas, square_rect, square_source, SquareGame, OUT_H};
+use slot_gfx::{
+    square, square_canvas, square_rect, square_source, Canvas, Layout, SquareGame, OUT_H,
+};
 
 const CUBE: (u32, u32) = (720, 720);
 
@@ -42,4 +44,15 @@ fn the_source_is_the_game_boy_picture_inside_the_gba_texture() {
         square_source(GB),
         [40.0 / 240.0, 8.0 / 160.0, 160.0 / 240.0, 144.0 / 160.0]
     );
+}
+
+#[test]
+fn the_menus_draw_on_a_square_canvas_at_panel_resolution() {
+    let canvas = Canvas::of(Layout::Native, CUBE);
+    assert_eq!((canvas.w, canvas.h), (480.0, 480.0));
+}
+
+#[test]
+fn a_framed_layout_on_the_cube_keeps_the_regular_canvas() {
+    assert_eq!(Canvas::of(Layout::Framed, CUBE), Canvas::FRAMED);
 }

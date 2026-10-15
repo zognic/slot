@@ -2525,15 +2525,20 @@ impl App {
     /// On a square panel (RG Cube) a Game Boy game skips the 3:2 canvas and fills the
     /// screen, until a menu needs the regular layout back.
     pub fn square_game(&self) -> Option<SquareGame> {
-        let platform = self.playing_platform();
         let playing = matches!(self.phase, Phase::Playing { .. }) && self.screen >= 1.0;
-        if !slot_gfx::square(self.panel)
-            || !playing
-            || platform == Platform::Gba
+        if !playing
             || self.in_game_menu_shown().is_some()
             || self.game_menu.is_some()
             || self.core_picker_shown().is_some()
         {
+            return None;
+        }
+        self.square_picture()
+    }
+
+    pub fn square_picture(&self) -> Option<SquareGame> {
+        let platform = self.playing_platform();
+        if !slot_gfx::square(self.panel) || platform == Platform::Gba {
             return None;
         }
         Some(SquareGame {

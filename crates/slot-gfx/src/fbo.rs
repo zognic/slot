@@ -40,6 +40,7 @@ pub struct Compositor {
     game_bezel: Option<TexId>,
     sp_frame: bool,
     square: Option<SquareGame>,
+    square_picture: Option<SquareGame>,
     turn: Option<Turn>,
 }
 
@@ -109,6 +110,7 @@ impl Compositor {
                 game_bezel: None,
                 sp_frame: true,
                 square: None,
+                square_picture: None,
                 turn: None,
             })
         }
@@ -149,7 +151,11 @@ impl Compositor {
             match *item {
                 Draw::Game if self.square.is_some() => {
                     self.sprites.draw(&items[from..i], &self.quad);
-                    self.draw_square_game();
+                    self.draw_square_game(self.square);
+                }
+                Draw::Game if self.native() && self.square_picture.is_some() => {
+                    self.sprites.draw(&items[from..i], &self.quad);
+                    self.draw_square_behind();
                 }
                 Draw::Game => {
                     self.sprites.draw(&items[from..i], &self.quad);
@@ -207,8 +213,31 @@ impl Compositor {
         self.square = game;
     }
 
-    fn draw_square_game(&mut self) {
-        let Some(game) = self.square else {
+    /// The Game Boy picture a square panel shows behind a menu, where it sits when playing.
+    pub fn set_square_picture(&mut self, game: Option<SquareGame>) {
+        self.square_picture = game;
+    }
+
+    fn draw_square_behind(&mut self) {
+        let Some(game) = self.square_picture else {
+            return;
+        };
+        let (x, y, w, h) = square_rect(self.window, game);
+        self.game
+            .set_fbo_scale(w as f32 / OUT_W as f32, h as f32 / OUT_H as f32);
+        self.game.set_origin(x as f32, y as f32);
+        unsafe { gl::Viewport(x, y, w, h) };
+        self.draw_square_game(Some(game));
+        self.game.set_origin(0.0, 0.0);
+        self.game.set_fbo_scale(
+            self.size.0 as f32 / OUT_W as f32,
+            self.size.1 as f32 / OUT_H as f32,
+        );
+        unsafe { gl::Viewport(0, 0, self.size.0 as i32, self.size.1 as i32) };
+    }
+
+    fn draw_square_game(&mut self, game: Option<SquareGame>) {
+        let Some(game) = game else {
             return;
         };
         self.game.set_fills_frame(true);
@@ -248,7 +277,8 @@ impl Compositor {
     }
 
     fn native(&self) -> bool {
-        self.layout == Layout::Native && crate::bezel::framed(self.window)
+        self.layout == Layout::Native
+            && (crate::bezel::framed(self.window) || crate::square::square(self.window))
     }
 
     fn resize(&mut self, size: (u32, u32)) {

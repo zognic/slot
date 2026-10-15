@@ -507,6 +507,7 @@ impl Frontend {
         compositor.set_game_source_rect(self.session.app().source_rect());
         self.grab_link_shot(compositor);
         compositor.set_square_game(self.session.app().square_game());
+        compositor.set_square_picture(self.session.app().square_picture());
         compositor.begin_frame(self.session.app().layout());
         if self.draw_rebuild(compositor) {
             return;

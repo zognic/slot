@@ -1,4 +1,5 @@
 use crate::bezel::framed;
+use crate::square::square;
 use crate::surface::{OUT_H, OUT_W};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -21,7 +22,7 @@ impl Canvas {
 
     pub fn of(layout: Layout, panel: (u32, u32)) -> Canvas {
         match layout {
-            Layout::Native if framed(panel) => Canvas {
+            Layout::Native if framed(panel) || square(panel) => Canvas {
                 w: (OUT_H * panel.0 / panel.1) as f32,
                 h: OUT_H as f32,
             },
