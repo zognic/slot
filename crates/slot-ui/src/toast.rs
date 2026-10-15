@@ -133,7 +133,11 @@ fn setting(toast: Toast) -> Setting {
 pub fn toast_rect(canvas: Canvas, toast: Toast) -> (f32, f32, f32, f32) {
     let (w, h) = toast_box(toast);
     let (w, h) = (w as f32, h as f32);
-    let middle = setting(toast).middle;
+    let s = setting(toast);
+    let middle = match toast.alarm() {
+        true => s.middle + canvas.mid(),
+        false => s.middle,
+    };
     (canvas.centred(w), middle - h / 2.0, w, h)
 }
 

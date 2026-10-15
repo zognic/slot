@@ -1095,7 +1095,7 @@ impl App {
                 x: 0.0,
                 y: 0.0,
                 w: self.canvas().w,
-                h: OUT_H as f32,
+                h: self.canvas().h,
                 colour: [0.0, 0.0, 0.0, alpha],
             });
         }
@@ -2898,7 +2898,7 @@ impl App {
                 x: 0.0,
                 y: 0.0,
                 w: self.canvas().w,
-                h: OUT_H as f32,
+                h: self.canvas().h,
                 colour: [0.0, 0.0, 0.0, 1.0],
             });
             let which = if self.restarting {
@@ -2909,7 +2909,7 @@ impl App {
             if let Some((tex, w, h)) = self.shutdown_faces.get(which.index()).copied() {
                 out.push(Draw::Tex {
                     x: self.canvas().centred(w as f32).floor(),
-                    y: ((OUT_H - h) / 2) as f32,
+                    y: ((self.canvas().h - h as f32) / 2.0).floor(),
                     w: w as f32,
                     h: h as f32,
                     tex,
@@ -3044,7 +3044,7 @@ impl App {
                     x: 0.0,
                     y: 0.0,
                     w: self.canvas().w,
-                    h: OUT_H as f32,
+                    h: self.canvas().h,
                     colour: [0.0, 0.0, 0.0, 1.0],
                 });
                 return;
@@ -3082,7 +3082,9 @@ impl App {
             }
         }
         if let Some(picker) = self.core_picker_shown() {
+            let from = out.len();
             self.draw_core_picker(&picker, out);
+            slot_gfx::lower(&mut out[from..], self.canvas().mid());
         }
         if let Some(menu) = self.game_menu {
             self.draw_game_menu(menu, out);
@@ -3242,14 +3244,14 @@ impl App {
             x: 0.0,
             y: 0.0,
             w: self.canvas().w,
-            h: OUT_H as f32,
+            h: self.canvas().h,
             colour: slot_ui::opening(),
         });
         draw_menu_rows(
             self.canvas(),
             &self.power_menu_faces,
             Some(index),
-            centred_top(self.power_menu_faces.len()),
+            centred_top(self.power_menu_faces.len()) + self.canvas().mid(),
             out,
         );
     }

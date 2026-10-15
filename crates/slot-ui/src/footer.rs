@@ -34,9 +34,10 @@ pub fn draw_footer(
     ink: [u8; 3],
     out: &mut Vec<Draw>,
 ) {
-    let y = FOOTER_Y + (HINT_H as f32 - GAUGE_H) / 2.0;
+    let top = FOOTER_Y + canvas.spare();
+    let y = top + (HINT_H as f32 - GAUGE_H) / 2.0;
     draw_gauge(FOOTER_MARGIN, y, battery, percent, bolt, ink, out);
-    printed(canvas.w - FOOTER_MARGIN - clock.w as f32, clock, out);
+    draw_printed(canvas.w - FOOTER_MARGIN - clock.w as f32, top, clock, out);
 }
 
 pub fn draw_corners(
@@ -75,8 +76,4 @@ pub(crate) fn draw_printed(x: f32, y: f32, p: Printed, out: &mut Vec<Draw>) {
             colour: [1.0, 1.0, 1.0, 0.08],
         },
     });
-}
-
-fn printed(x: f32, p: Printed, out: &mut Vec<Draw>) {
-    draw_printed(x, FOOTER_Y, p, out);
 }

@@ -1,4 +1,4 @@
-use crate::draw::{Canvas, Draw, TexId, OUT_H, OUT_W};
+use crate::draw::{Canvas, Draw, TexId, OUT_W};
 use crate::plate::{arrows_hint_face, centred_hints, hint_face, UndoFace, HINT_H, LEGEND_GAP};
 use crate::power_menu::{MENU_H, MENU_INK, MENU_PAD, MENU_PX};
 use crate::slot_chrome::opening;
@@ -585,22 +585,28 @@ pub struct QuickMenu<'a> {
 
 impl QuickMenu<'_> {
     pub fn draw(&self, out: &mut Vec<Draw>) {
-        match (self.over_game, self.row.page() == QuickRow::PLAY_SCREEN) {
+        let panel = self.row.page() == QuickRow::PLAY_SCREEN;
+        let drop = match panel {
+            true => self.canvas.spare(),
+            false => self.canvas.mid(),
+        };
+        match (self.over_game, panel) {
             (false, _) => draw_menu_ground(self.canvas, self.ground, out),
             (true, panel) => {
                 let y = match panel {
-                    true => quick_row_top(self.row.page()[0], self.hidden) - PANEL_GAP,
+                    true => quick_row_top(self.row.page()[0], self.hidden) - PANEL_GAP + drop,
                     false => 0.0,
                 };
                 out.push(Draw::Rect {
                     x: 0.0,
                     y,
                     w: self.canvas.w,
-                    h: OUT_H as f32 - y,
+                    h: self.canvas.h - y,
                     colour: [0.0, 0.0, 0.0, GROUND_SCRIM],
                 });
             }
         }
+        let rows = out.len();
         let Some(faces) = self.faces else {
             return;
         };
@@ -654,6 +660,7 @@ impl QuickMenu<'_> {
             push(out, tex, vx, y, w, h);
             push(out, left_tex, vx + pad - CARET_GAP - lw as f32, y, lw, lh);
         }
+        slot_gfx::lower(&mut out[rows..], drop);
         let [back, change, open, resume] = faces.legend;
         let back = match self.row.page() == QuickRow::PLAY {
             true => resume,
@@ -661,13 +668,13 @@ impl QuickMenu<'_> {
         };
         let other = if self.row.opens() { open } else { change };
         for (tex, w, x) in centred_hints(self.canvas, &[back, other], LEGEND_GAP) {
-            push(out, tex, x, LEGEND_Y, w, HINT_H);
+            push(out, tex, x, LEGEND_Y + self.canvas.spare(), w, HINT_H);
         }
     }
 }
 
 pub fn draw_menu_ground(canvas: Canvas, ground: Option<TexId>, out: &mut Vec<Draw>) {
-    let (w, h) = (canvas.w, OUT_H as f32);
+    let (w, h) = (canvas.w, canvas.h);
     match ground {
         Some(tex) => {
             out.push(Draw::Part {
@@ -677,7 +684,7 @@ pub fn draw_menu_ground(canvas: Canvas, ground: Option<TexId>, out: &mut Vec<Dra
                 h,
                 tex,
                 alpha: 1.0,
-                uv: canvas.window(OUT_W as f32),
+                uv: canvas.cover(OUT_W as f32),
             });
             out.push(Draw::Rect {
                 x: 0.0,

@@ -1,5 +1,6 @@
 use slot_gfx::{
-    square, square_canvas, square_rect, square_source, Canvas, Layout, SquareGame, OUT_H,
+    lower, square, square_canvas, square_rect, square_source, Canvas, Draw, Layout, SquareGame,
+    OUT_H,
 };
 
 const CUBE: (u32, u32) = (720, 720);
@@ -49,7 +50,38 @@ fn the_source_is_the_game_boy_picture_inside_the_gba_texture() {
 #[test]
 fn the_menus_draw_on_a_square_canvas_at_panel_resolution() {
     let canvas = Canvas::of(Layout::Native, CUBE);
-    assert_eq!((canvas.w, canvas.h), (480.0, 480.0));
+    assert_eq!((canvas.w, canvas.h), (720.0, 720.0));
+    assert_eq!((canvas.spare(), canvas.mid()), (240.0, 120.0));
+}
+
+#[test]
+fn a_regular_canvas_has_no_spare_height() {
+    assert_eq!(Canvas::FRAMED.spare(), 0.0);
+    assert_eq!(Canvas::of(Layout::Native, (640, 480)).spare(), 0.0);
+}
+
+#[test]
+fn lowering_moves_every_sprite_but_not_the_game() {
+    let mut items = [
+        Draw::Rect {
+            x: 0.0,
+            y: 10.0,
+            w: 1.0,
+            h: 1.0,
+            colour: [0.0; 4],
+        },
+        Draw::Game,
+    ];
+    lower(&mut items, 120.0);
+    assert!(matches!(items[0], Draw::Rect { y, .. } if y == 130.0));
+    assert_eq!(items[1], Draw::Game);
+}
+
+#[test]
+fn a_square_ground_shows_the_middle_square_of_the_texture() {
+    let canvas = Canvas::of(Layout::Native, CUBE);
+    assert_eq!(canvas.cover(720.0), [1.0 / 6.0, 0.0, 2.0 / 3.0, 1.0]);
+    assert_eq!(Canvas::FRAMED.cover(720.0), [0.0, 0.0, 1.0, 1.0]);
 }
 
 #[test]
