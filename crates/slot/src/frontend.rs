@@ -506,6 +506,7 @@ impl Frontend {
         compositor.set_overlay_slide(self.session.app().overlay_slide());
         compositor.set_game_source_rect(self.session.app().source_rect());
         self.grab_link_shot(compositor);
+        compositor.set_square_game(self.session.app().square_game());
         compositor.begin_frame(self.session.app().layout());
         if self.draw_rebuild(compositor) {
             return;

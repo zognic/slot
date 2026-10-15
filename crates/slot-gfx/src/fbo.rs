@@ -3,6 +3,7 @@ use crate::grade::blue_light_gain;
 use crate::pipeline::GamePass;
 use crate::quad::Quad;
 use crate::shaders::{BEZEL_FRAG, BLIT_FRAG, BLIT_VERT, TURN_VERT};
+use crate::square::{square_canvas, square_rect, square_source, SquareGame};
 use crate::surface::{blit_rect, GfxError, Surface, OUT_H, OUT_W};
 use crate::{Canvas, Layout};
 
@@ -38,6 +39,7 @@ pub struct Compositor {
     bezel: Option<gl::types::GLuint>,
     game_bezel: Option<TexId>,
     sp_frame: bool,
+    square: Option<SquareGame>,
     turn: Option<Turn>,
 }
 
@@ -106,6 +108,7 @@ impl Compositor {
                 bezel: None,
                 game_bezel: None,
                 sp_frame: true,
+                square: None,
                 turn: None,
             })
         }
@@ -144,6 +147,10 @@ impl Compositor {
         let mut from = 0;
         for (i, item) in items.iter().enumerate() {
             match *item {
+                Draw::Game if self.square.is_some() => {
+                    self.sprites.draw(&items[from..i], &self.quad);
+                    self.draw_square_game();
+                }
                 Draw::Game => {
                     self.sprites.draw(&items[from..i], &self.quad);
                     self.in_game_rect(|c| {
@@ -194,6 +201,20 @@ impl Compositor {
 
     pub fn set_sp_frame(&mut self, on: bool) {
         self.sp_frame = on;
+    }
+
+    pub fn set_square_game(&mut self, game: Option<SquareGame>) {
+        self.square = game;
+    }
+
+    fn draw_square_game(&mut self) {
+        let Some(game) = self.square else {
+            return;
+        };
+        self.game.set_fills_frame(true);
+        self.game.set_source_rect(square_source(game));
+        self.game.draw(&self.quad);
+        self.game.set_fills_frame(false);
     }
 
     fn draw_game_bezel(&mut self) {
@@ -346,13 +367,19 @@ impl Compositor {
 
     pub fn begin_frame(&mut self, layout: Layout) {
         self.layout = layout;
-        let size = if self.native() {
-            self.window
-        } else {
-            canvas_size(self.window)
+        let size = match self.square {
+            Some(game) => {
+                let (_, _, w, h) = square_rect(self.window, game);
+                (w.max(1) as u32, h.max(1) as u32)
+            }
+            None if self.native() => self.window,
+            None => canvas_size(self.window),
         };
         self.resize(size);
-        self.sprites.set_target(Canvas::of(layout, self.window));
+        self.sprites.set_target(match self.square {
+            Some(game) => square_canvas(self.window, game),
+            None => Canvas::of(layout, self.window),
+        });
         self.game.set_fbo_scale(
             self.size.0 as f32 / OUT_W as f32,
             self.size.1 as f32 / OUT_H as f32,
@@ -439,6 +466,13 @@ impl Compositor {
             gl::ActiveTexture(gl::TEXTURE0);
             gl::Uniform3f(self.u_gain, self.gain[0], self.gain[1], self.gain[2]);
             gl::BindTexture(gl::TEXTURE_2D, self.tex);
+        }
+        if let Some(game) = self.square {
+            let (x, y, w, h) = square_rect(window, game);
+            let canvas = square_canvas(window, game);
+            let dx = (self.shake * w as f32 / canvas.w).round() as i32;
+            self.blit_part(x + dx, y, w, h, [0.0, 0.0, 1.0, 1.0]);
+            return;
         }
         if self.native() {
             let canvas = Canvas::of(Layout::Native, window);

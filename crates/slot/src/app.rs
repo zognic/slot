@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use slot_gfx::{Canvas, Layout, OUT_H, OUT_W};
+use slot_gfx::{Canvas, Layout, SquareGame, OUT_H, OUT_W};
 use slot_input::{Action, Btn, MENU_DOUBLE_TAP_MS, MUTE_CHORD_MS};
 use slot_power::{Battery, Charge, LedState, LidPolicy, Power};
 use slot_retro::LinkChannel;
@@ -1009,7 +1009,7 @@ impl App {
     }
 
     pub fn shown_game_bezel(&self) -> Option<TexId> {
-        if self.video_mode == VideoMode::Stretch {
+        if self.video_mode == VideoMode::Stretch || self.square_game().is_some() {
             return None;
         }
         self.game_bezel
@@ -2516,7 +2516,30 @@ impl App {
     }
 
     pub fn canvas(&self) -> Canvas {
-        Canvas::of(self.layout(), self.panel)
+        match self.square_game() {
+            Some(game) => slot_gfx::square_canvas(self.panel, game),
+            None => Canvas::of(self.layout(), self.panel),
+        }
+    }
+
+    /// On a square panel (RG Cube) a Game Boy game skips the 3:2 canvas and fills the
+    /// screen, until a menu needs the regular layout back.
+    pub fn square_game(&self) -> Option<SquareGame> {
+        let platform = self.playing_platform();
+        let playing = matches!(self.phase, Phase::Playing { .. }) && self.screen >= 1.0;
+        if !slot_gfx::square(self.panel)
+            || !playing
+            || platform == Platform::Gba
+            || self.in_game_menu_shown().is_some()
+            || self.game_menu.is_some()
+            || self.core_picker_shown().is_some()
+        {
+            return None;
+        }
+        Some(SquareGame {
+            picture: platform.picture(),
+            stretch: self.video_mode == VideoMode::Stretch,
+        })
     }
 
     pub fn overlay_slide(&self) -> f32 {
